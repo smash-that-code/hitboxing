@@ -248,12 +248,7 @@ public class Hitboxing extends ApplicationAdapter {
 			FloatArray rectangle = FloatArray.with(vertices);
 			boolean playerColliedWithRectangle = Intersector.intersectPolygons(avatar, rectangle);
 
-			if (playerColliedWithRectangle) {
-				state.rectangleActivity.set(i, true);
-			}
-			else {
-				state.rectangleActivity.set(i, false);
-			}
+			state.rectangleActivity.set(i, playerColliedWithRectangle);
 		}
 	}
 
