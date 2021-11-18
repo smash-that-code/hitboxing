@@ -11,6 +11,7 @@ import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
 import hitboxing.concept.data.CircleEntity;
 import hitboxing.concept.data.InputState;
@@ -84,7 +85,7 @@ public class Hitboxing extends ApplicationAdapter {
 		inputState = new InputState();
 
 		batch = new SpriteBatch();
-		playerTexture = new Texture("player.png");
+		playerTexture = new Texture("square.png");
 		playerTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
 		playerSprite = new Sprite(playerTexture);
 
@@ -237,54 +238,13 @@ public class Hitboxing extends ApplicationAdapter {
 		for (int i = 0; i < state.trapeziumVertices.size(); i++) {
 			float[] vertices = state.trapeziumVertices.get(i);
 
-			boolean playerCenterInPolygon = Intersector.isPointInPolygon(vertices, 0, vertices.length, x, y);
+			FloatArray avatar = FloatArray.with(new float[]{
+					x-radius,y+radius, x+radius,y+radius,
+					x+radius,y-radius, x-radius,y-radius});
+			FloatArray rectangle = FloatArray.with(vertices);
+			boolean playerColliedWithRectangle = Intersector.intersectPolygons(avatar, rectangle);
 
-			boolean verticeInsidePlayerCircle = false;
-
-			if (playerCenterInPolygon != true) {
-				vertice_loop:
-				for (int j = 0; j < vertices.length/2; j++) {
-					float verticeX = vertices[j*2];
-					float verticeY = vertices[j*2+1];
-
-					float distance = Line.distance(x, y, verticeX, verticeY);
-
-					if (distance < radius) {
-						verticeInsidePlayerCircle = true;
-						break vertice_loop;
-					}
-				}
-			}
-
-			boolean intersected = false;
-			if (playerCenterInPolygon == false && verticeInsidePlayerCircle == false) {
-				Vector2 center = new Vector2(x, y);
-				float squaredRadius = radius*radius;
-
-				intersection_loop:
-				for (int j = 0; j < vertices.length/2; j++) {
-					Vector2 start = new Vector2(vertices[j*2], vertices[j*2+1]);
-
-					Vector2 end;
-
-					//last vertex -> its edge end is very FIRST vertex;
-					if (j == vertices.length/2-1) {
-						end = new Vector2(vertices[0], vertices[1]);
-					}
-					else {
-						end = new Vector2(vertices[j * 2 + 2], vertices[j * 2 + 3]);
-					}
-
-					boolean intersectionFound = Intersector.intersectSegmentCircle(start, end, center, squaredRadius);
-
-					if (intersectionFound) {
-						intersected = true;
-						break intersection_loop;
-					}
-				}
-			}
-
-			if (playerCenterInPolygon || verticeInsidePlayerCircle || intersected) {
+			if (playerColliedWithRectangle) {
 				state.trapeziumActivity.set(i, true);
 			}
 			else {
@@ -333,7 +293,7 @@ public class Hitboxing extends ApplicationAdapter {
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
 
-		//this is where we draw rectangles/trapeziums
+		//this is where we draw rectangles
 		polyBatch.begin();
 
 		for (int i = 0; i < state.trapeziumActivity.size(); i++) {
