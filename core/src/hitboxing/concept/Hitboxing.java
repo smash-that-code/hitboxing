@@ -10,13 +10,11 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.*;
 import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Intersector;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
 import hitboxing.concept.data.CircleEntity;
 import hitboxing.concept.data.InputState;
 import hitboxing.concept.geometry.Direction;
-import hitboxing.concept.geometry.Line;
 
 import java.util.*;
 
@@ -29,16 +27,16 @@ public class Hitboxing extends ApplicationAdapter {
 	TextureRegion inactivePolyTextureRegion;
 	List<TextureRegion> activePolyTextureRegions = new ArrayList<>();
 	private static final EarClippingTriangulator triangulator = new EarClippingTriangulator();
-	List<PolygonSprite> inactiveTrapeziums = new ArrayList<>();
-	List<PolygonSprite> activeTrapeziums = new ArrayList<>();
+	List<PolygonSprite> inactiveRectangles = new ArrayList<>();
+	List<PolygonSprite> activeRectangles = new ArrayList<>();
 	PolygonSpriteBatch polyBatch;
 
 	public static class GameState {
 		public int screenMaxWidth;
 		public int screenMaxHeight;
 
-		public List<float[]> trapeziumVertices = new ArrayList<>();
-		public List<Boolean> trapeziumActivity = new ArrayList<>();
+		public List<float[]> rectanglePointArrays = new ArrayList<>();
+		public List<Boolean> rectangleActivity = new ArrayList<>();
 
 		public GameState(int screenMaxWidth, int screenMaxHeight) {
 			this.screenMaxWidth = screenMaxWidth;
@@ -51,16 +49,18 @@ public class Hitboxing extends ApplicationAdapter {
 	GameState state;
 	InputState inputState;
 
-	public static void setupTrapeziums(GameState state,
-									   List<PolygonSprite> activeTrapeziums, List<PolygonSprite> inactiveTrapeziums,
+	public static void setupRectangles(GameState state,
+									   List<PolygonSprite> activeRectangles, List<PolygonSprite> inactiveRectangles,
 									   List<TextureRegion> activePolyTextureRegions, TextureRegion inactivePolyTextureRegion) {
-		final int TRAPEZIUM_COUNT = 1;
+		final int RECTANGLE_COUNT = 3;
+		final int WIDTH = 100;
+		final int HEIGHT = 100;
 
-		activeTrapeziums.clear();
-		inactiveTrapeziums.clear();
-		state.trapeziumVertices.clear();
+		activeRectangles.clear();
+		inactiveRectangles.clear();
+		state.rectanglePointArrays.clear();
 
-		for (int i = 0; i < TRAPEZIUM_COUNT; i++) {
+		for (int i = 0; i < RECTANGLE_COUNT; i++) {
 			Pixmap pix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
 			pix.setColor(0, 0.5f, 0, 0.75f);
 			pix.fill();
@@ -68,14 +68,18 @@ public class Hitboxing extends ApplicationAdapter {
 			TextureRegion coloredTextureRegion = new TextureRegion(solidColorTexture);
 			activePolyTextureRegions.add(coloredTextureRegion);
 
-			float[] vertices = new float[] {400,400, 500,400, 500,500, 400,500};
-			PolygonSprite newInactiveSprite = getPolySprite(inactivePolyTextureRegion, vertices);
-			PolygonSprite newActiveSprite = getPolySprite(coloredTextureRegion, vertices);
+			int startX = 300 + i * WIDTH*2;
+			int startY = 300;
+			float[] pointArray = new float[] {
+					startX,startY, startX,startY+HEIGHT,
+					startX+WIDTH,startY+HEIGHT, startX+WIDTH,startY};
+			PolygonSprite newInactiveSprite = getPolySprite(inactivePolyTextureRegion, pointArray);
+			PolygonSprite newActiveSprite = getPolySprite(coloredTextureRegion, pointArray);
 
-			inactiveTrapeziums.add(newInactiveSprite);
-			activeTrapeziums.add(newActiveSprite);
-			state.trapeziumVertices.add(vertices);
-			state.trapeziumActivity.add(false);
+			inactiveRectangles.add(newInactiveSprite);
+			activeRectangles.add(newActiveSprite);
+			state.rectanglePointArrays.add(pointArray);
+			state.rectangleActivity.add(false);
 		}
 	}
 
@@ -98,8 +102,8 @@ public class Hitboxing extends ApplicationAdapter {
 		inactivePolyTextureRegion = new TextureRegion(solidColorTexture);
 
 
-		setupTrapeziums(state,
-						activeTrapeziums, inactiveTrapeziums,
+		setupRectangles(state,
+				activeRectangles, inactiveRectangles,
 						activePolyTextureRegions, inactivePolyTextureRegion);
 
 
@@ -229,14 +233,14 @@ public class Hitboxing extends ApplicationAdapter {
 		}
 	}
 
-	public static void calculateTrapeziumCollisions(GameState state) {
+	public static void calculatePlayerCollisionsWithRectangles(GameState state) {
 		CircleEntity player = state.player;
 		float x = player.x;
 		float y = player.y;
 		float radius = player.radius;
 
-		for (int i = 0; i < state.trapeziumVertices.size(); i++) {
-			float[] vertices = state.trapeziumVertices.get(i);
+		for (int i = 0; i < state.rectanglePointArrays.size(); i++) {
+			float[] vertices = state.rectanglePointArrays.get(i);
 
 			FloatArray avatar = FloatArray.with(new float[]{
 					x-radius,y+radius, x+radius,y+radius,
@@ -245,10 +249,10 @@ public class Hitboxing extends ApplicationAdapter {
 			boolean playerColliedWithRectangle = Intersector.intersectPolygons(avatar, rectangle);
 
 			if (playerColliedWithRectangle) {
-				state.trapeziumActivity.set(i, true);
+				state.rectangleActivity.set(i, true);
 			}
 			else {
-				state.trapeziumActivity.set(i, false);
+				state.rectangleActivity.set(i, false);
 			}
 		}
 	}
@@ -281,7 +285,7 @@ public class Hitboxing extends ApplicationAdapter {
 
 			//collision detection
 			calculatePlayerCollisions(state);
-			calculateTrapeziumCollisions(state);
+			calculatePlayerCollisionsWithRectangles(state);
 
 			//time tracking logic
 			internalTimeTracker -= FIXED_TIMESTAMP;
@@ -296,13 +300,13 @@ public class Hitboxing extends ApplicationAdapter {
 		//this is where we draw rectangles
 		polyBatch.begin();
 
-		for (int i = 0; i < state.trapeziumActivity.size(); i++) {
-			boolean isActive = state.trapeziumActivity.get(i);
+		for (int i = 0; i < state.rectangleActivity.size(); i++) {
+			boolean isActive = state.rectangleActivity.get(i);
 			if (isActive) {
-				activeTrapeziums.get(i).draw(polyBatch);
+				activeRectangles.get(i).draw(polyBatch);
 			}
 			else {
-				inactiveTrapeziums.get(i).draw(polyBatch);
+				inactiveRectangles.get(i).draw(polyBatch);
 			}
 		}
 
