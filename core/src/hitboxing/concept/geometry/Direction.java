@@ -24,7 +24,9 @@ public enum Direction {
         this.degreeAngle = degreeAngle;
     }
 
-
+    public boolean isDiagonal() {
+        return this == NE || this == NW || this == SE || this == SW;
+    }
 
     public static Direction getDirection(float x, float y) {
         if (x == 0 && y == 0) {

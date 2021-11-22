@@ -12,7 +12,7 @@ import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
-import hitboxing.concept.data.CircleEntity;
+import hitboxing.concept.data.RectangleEntity;
 import hitboxing.concept.data.InputState;
 import hitboxing.concept.geometry.Direction;
 
@@ -43,7 +43,8 @@ public class Hitboxing extends ApplicationAdapter {
 			this.screenMaxHeight = screenMaxHeight;
 		}
 
-		public CircleEntity player = new CircleEntity(150, 150, 100, 0, 550);
+		public RectangleEntity player =
+				new RectangleEntity(150, 150, 100, 100, 0, 550);
 	}
 
 	GameState state;
@@ -202,7 +203,8 @@ public class Hitboxing extends ApplicationAdapter {
 			y = -1;
 		}
 
-		float rotation = Direction.getDirection(x, y).degreeAngle;
+		Direction direction = Direction.getDirection(x, y);
+		float rotation = direction.degreeAngle;
 
 
 		float directionX = (float) Math.cos(Math.PI / 180 * rotation);
@@ -212,39 +214,54 @@ public class Hitboxing extends ApplicationAdapter {
 		state.player.x += directionX * step;
 		state.player.y += directionY * step;
 		state.player.rotation = rotation;
+		state.player.direction = direction;
 	}
 
 	//do not allow player move beyond screen
 	public static void calculatePlayerCollisions(GameState state) {
-		CircleEntity player = state.player;
+		RectangleEntity player = state.player;
 
 		//against borders
-		if (player.x > state.screenMaxWidth - state.player.radius) {
-			player.x = state.screenMaxWidth - state.player.radius;
-		} else if (player.x < player.radius) {
-			player.x = player.radius;
+		if (player.x > state.screenMaxWidth - state.player.width/2) {
+			player.x = state.screenMaxWidth - state.player.width/2;
+		} else if (player.x < player.width/2) {
+			player.x = player.width/2;
 		}
 
-		if (player.y > state.screenMaxHeight - state.player.radius) {
+		if (player.y > state.screenMaxHeight - state.player.height/2) {
 			System.out.println(state.screenMaxHeight);
-			player.y = state.screenMaxHeight - state.player.radius;
-		} else if (player.y < player.radius) {
-			player.y = player.radius;
+			player.y = state.screenMaxHeight - state.player.height/2;
+		} else if (player.y < player.height/2) {
+			player.y = player.height/2;
 		}
 	}
 
 	public static void calculatePlayerCollisionsWithRectangles(GameState state) {
-		CircleEntity player = state.player;
+		RectangleEntity player = state.player;
 		float x = player.x;
 		float y = player.y;
-		float radius = player.radius;
+		float playerWidthHalf = player.width/2;
+		float playerHeightHalf = player.height/2;
+		//i assume we have square player for now
+		float halfDiagonal = (float) (player.width/Math.sqrt(2));
 
 		for (int i = 0; i < state.rectanglePointArrays.size(); i++) {
 			float[] vertices = state.rectanglePointArrays.get(i);
 
-			FloatArray avatar = FloatArray.with(new float[]{
-					x-radius,y+radius, x+radius,y+radius,
-					x+radius,y-radius, x-radius,y-radius});
+			FloatArray avatar = player.direction.isDiagonal()
+					? FloatArray.with(new float[]{
+						x,y+halfDiagonal,//top corner
+						x+halfDiagonal,y,//right corner
+						x,y-halfDiagonal,//bottom corner
+						x-halfDiagonal,y //left corner
+					})
+					: FloatArray.with(new float[]{
+						x-playerWidthHalf,y+playerHeightHalf,//left top corner
+						x+playerWidthHalf,y+playerHeightHalf,//right top corner
+						x+playerWidthHalf,y-playerHeightHalf,//right bottom corner
+						x-playerWidthHalf,y-playerHeightHalf //left bottom corner
+					});
+
 			FloatArray rectangle = FloatArray.with(vertices);
 			boolean playerColliedWithRectangle = Intersector.intersectPolygons(avatar, rectangle);
 
@@ -311,8 +328,8 @@ public class Hitboxing extends ApplicationAdapter {
 		//this is where we actually draw player image
 		batch.begin();
 
-		CircleEntity player = state.player;
-		playerSprite.setBounds(player.x-player.radius, player.y-player.radius, player.radius *2, player.radius *2);
+		RectangleEntity player = state.player;
+		playerSprite.setBounds(player.x-player.width/2, player.y-player.height/2, player.width , player.height);
 		playerSprite.setOriginCenter();
 		playerSprite.setRotation(player.rotation);
 		playerSprite.draw(batch);

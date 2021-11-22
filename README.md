@@ -19,8 +19,9 @@ Phase 1 - setup
     create default rectangles/trapeziums
 
 Phase 2 - Loop
-    input handling
+    device input handling
     should exit?
+    apply input to game entities
     collision detection
     state change
     clean screen
