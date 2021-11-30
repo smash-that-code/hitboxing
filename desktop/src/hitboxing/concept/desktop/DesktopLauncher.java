@@ -11,7 +11,7 @@ public class DesktopLauncher {
 		config.samples = 4; //antialiasing
 		config.title = "Hitboxing At Its Finest";
 		config.width = 1920;
-		config.height = 1080;
+		config.height = 1000;
 		new LwjglApplication(new Hitboxing(), config);
 	}
 }

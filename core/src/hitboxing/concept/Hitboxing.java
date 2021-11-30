@@ -12,7 +12,7 @@ import com.badlogic.gdx.math.EarClippingTriangulator;
 import com.badlogic.gdx.math.Intersector;
 import com.badlogic.gdx.utils.FloatArray;
 import com.badlogic.gdx.utils.ShortArray;
-import hitboxing.concept.data.RectangleEntity;
+import hitboxing.concept.data.SquareEntity;
 import hitboxing.concept.data.InputState;
 import hitboxing.concept.geometry.Direction;
 
@@ -43,8 +43,8 @@ public class Hitboxing extends ApplicationAdapter {
 			this.screenMaxHeight = screenMaxHeight;
 		}
 
-		public RectangleEntity player =
-				new RectangleEntity(150, 150, 100, 100, 0, 550);
+		public SquareEntity player =
+				new SquareEntity(150, 150, 100, 0, 550);
 	}
 
 	GameState state;
@@ -219,31 +219,29 @@ public class Hitboxing extends ApplicationAdapter {
 
 	//do not allow player move beyond screen
 	public static void calculatePlayerCollisions(GameState state) {
-		RectangleEntity player = state.player;
+		SquareEntity player = state.player;
+		float halfSide = player.side/2;
 
 		//against borders
-		if (player.x > state.screenMaxWidth - state.player.width/2) {
-			player.x = state.screenMaxWidth - state.player.width/2;
-		} else if (player.x < player.width/2) {
-			player.x = player.width/2;
+		if (player.x > state.screenMaxWidth - halfSide) {
+			player.x = state.screenMaxWidth - halfSide;
+		} else if (player.x < halfSide) {
+			player.x = halfSide;
 		}
 
-		if (player.y > state.screenMaxHeight - state.player.height/2) {
-			System.out.println(state.screenMaxHeight);
-			player.y = state.screenMaxHeight - state.player.height/2;
-		} else if (player.y < player.height/2) {
-			player.y = player.height/2;
+		if (player.y > state.screenMaxHeight - halfSide) {
+			player.y = state.screenMaxHeight - halfSide;
+		} else if (player.y < halfSide) {
+			player.y = halfSide;
 		}
 	}
 
 	public static void calculatePlayerCollisionsWithRectangles(GameState state) {
-		RectangleEntity player = state.player;
+		SquareEntity player = state.player;
 		float x = player.x;
 		float y = player.y;
-		float playerWidthHalf = player.width/2;
-		float playerHeightHalf = player.height/2;
-		//i assume we have square player for now
-		float halfDiagonal = (float) (player.width/Math.sqrt(2));
+		float sideHalf = player.side/2;
+		float halfDiagonal = (float) (player.side/Math.sqrt(2));
 
 		for (int i = 0; i < state.rectanglePointArrays.size(); i++) {
 			float[] vertices = state.rectanglePointArrays.get(i);
@@ -256,10 +254,10 @@ public class Hitboxing extends ApplicationAdapter {
 						x-halfDiagonal,y //left corner
 					})
 					: FloatArray.with(new float[]{
-						x-playerWidthHalf,y+playerHeightHalf,//left top corner
-						x+playerWidthHalf,y+playerHeightHalf,//right top corner
-						x+playerWidthHalf,y-playerHeightHalf,//right bottom corner
-						x-playerWidthHalf,y-playerHeightHalf //left bottom corner
+						x-sideHalf,y+sideHalf,//left top corner
+						x+sideHalf,y+sideHalf,//right top corner
+						x+sideHalf,y-sideHalf,//right bottom corner
+						x-sideHalf,y-sideHalf //left bottom corner
 					});
 
 			FloatArray rectangle = FloatArray.with(vertices);
@@ -328,8 +326,8 @@ public class Hitboxing extends ApplicationAdapter {
 		//this is where we actually draw player image
 		batch.begin();
 
-		RectangleEntity player = state.player;
-		playerSprite.setBounds(player.x-player.width/2, player.y-player.height/2, player.width , player.height);
+		SquareEntity player = state.player;
+		playerSprite.setBounds(player.x-player.side/2, player.y-player.side/2, player.side , player.side);
 		playerSprite.setOriginCenter();
 		playerSprite.setRotation(player.rotation);
 		playerSprite.draw(batch);
